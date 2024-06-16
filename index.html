@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sliding Puzzle</title>
+    <style>
+        /* Global styles */
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #f0f0f0;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+/* Puzzle grid */
+.puzzle {
+    display: grid;
+    grid-template-columns: repeat(4, 100px);
+    grid-template-rows: repeat(4, 100px);
+    gap: 2px;
+    margin-top: 20px;
+    width: 404px;
+    height: 404px;
+    position: relative;
+    border: 2px solid #333;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.tile {
+    width: 100px;
+    height: 100px;
+    background-size: 400px 400px;
+    background-position: center;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s ease-out;
+    border: 1px solid #ccc;
+}
+
+.tile.empty {
+    background-color: transparent;
+    cursor: default;
+}
+
+.tile:hover {
+    transform: scale(1.05);
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 400px;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #333;
+}
+
+.modal-content input[type=file] {
+    margin-bottom: 20px;
+}
+
+.modal-content button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 4px;
+}
+
+.modal-content button:hover {
+    background-color: #0056b3;
+}
+
+/* Shuffle button */
+#shuffle {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    margin-top: 20px;
+    transition: background-color 0.3s ease;
+}
+
+#shuffle:hover {
+    background-color: #218838;
+}
+
+/* File input styling */
+input[type=file] {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .puzzle {
+        width: 300px;
+        height: 300px;
+    }
+
+    .tile {
+        width: 75px;
+        height: 75px;
+        background-size: 300px 300px;
+    }
+
+    .modal-content {
+        width: 90%;
+    }
+}
+
+    </style>
+</head>
+<body>
+    <div class="modal" id="uploadModal">
+        <div class="modal-content">
+            <h2>Upload an Image</h2>
+            <input type="file" id="imageUpload" accept="image/*">
+            <button id="uploadButton">Upload</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="puzzle" id="puzzle">
+            <!-- Tiles will be inserted here by JavaScript -->
+        </div>
+        <button id="shuffle">Shuffle</button>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+    const puzzleContainer = document.getElementById('puzzle');
+    const shuffleButton = document.getElementById('shuffle');
+    const uploadModal = document.getElementById('uploadModal');
+    const imageUpload = document.getElementById('imageUpload');
+    const uploadButton = document.getElementById('uploadButton');
+    const size = 4;
+    let tiles;
+
+    function createTiles(imageUrl) {
+        puzzleContainer.innerHTML = ''; // Clear existing tiles
+        const fragment = document.createDocumentFragment();
+        tiles = Array.from({ length: size * size }, (_, i) => {
+            const tile = document.createElement('div');
+            tile.classList.add('tile');
+            if (i === size * size - 1) {
+                tile.classList.add('empty');
+            } else {
+                const row = Math.floor(i / size);
+                const col = i % size;
+                tile.style.backgroundImage = `url(${imageUrl})`;
+                tile.style.backgroundPosition = `-${col * 100}px -${row * 100}px`;
+            }
+            tile.addEventListener('click', () => moveTile(i));
+            fragment.appendChild(tile);
+            return tile;
+        });
+        puzzleContainer.appendChild(fragment);
+    }
+
+    function moveTile(index) {
+        const emptyIndex = tiles.findIndex(tile => tile.classList.contains('empty'));
+        const [emptyRow, emptyCol] = [Math.floor(emptyIndex / size), emptyIndex % size];
+        const [tileRow, tileCol] = [Math.floor(index / size), index % size];
+
+        if (Math.abs(emptyRow - tileRow) + Math.abs(emptyCol - tileCol) === 1) {
+            [tiles[emptyIndex].style.backgroundImage, tiles[emptyIndex].style.backgroundPosition, tiles[index].style.backgroundImage, tiles[index].style.backgroundPosition] = [tiles[index].style.backgroundImage, tiles[index].style.backgroundPosition, '', ''];
+            tiles[emptyIndex].classList.remove('empty');
+            tiles[index].classList.add('empty');
+            tiles = [...tiles];
+        }
+    }
+
+    function shuffleTiles() {
+        for (let i = 0; i < 1000; i++) {
+            const emptyIndex = tiles.findIndex(tile => tile.classList.contains('empty'));
+            const possibleMoves = [emptyIndex - 1, emptyIndex + 1, emptyIndex - size, emptyIndex + size].filter(index => {
+                const [row, col] = [Math.floor(index / size), index % size];
+                return index >= 0 && index < size * size && (Math.abs(Math.floor(emptyIndex / size) - row) + Math.abs((emptyIndex % size) - col)) === 1;
+            });
+            const moveTo = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+            moveTile(moveTo);
+        }
+    }
+
+    function openUploadModal() {
+        uploadModal.style.display = 'block';
+    }
+
+    function closeUploadModal() {
+        uploadModal.style.display = 'none';
+    }
+
+    function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                createTiles(e.target.result);
+                closeUploadModal();
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    uploadButton.addEventListener('click', handleImageUpload);
+    shuffleButton.addEventListener('click', shuffleTiles);
+    imageUpload.addEventListener('change', handleImageUpload);
+
+    openUploadModal(); // Open the upload modal when the page loads
+});
+
+    </script>
+</body>
+</html>
